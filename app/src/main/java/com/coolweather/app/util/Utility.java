@@ -93,14 +93,20 @@ public class Utility {
     public static void handleWeatherResponse(Context context, String response){
         try{
             JSONObject jsonObject = new JSONObject(response);
-            JSONObject weatherInfo = jsonObject.getJSONObject("weatherinfo");
+
+            JSONObject weatherInfo = jsonObject.getJSONObject("retData");
             String cityName = weatherInfo.getString("city");
-            String weatherCode = weatherInfo.getString("cityid");
-            String temp1 = weatherInfo.getString("temp1");
-            String temp2 = weatherInfo.getString("temp2");
-            String weatherDesp =weatherInfo.getString("weather");
-            String publishTime = weatherInfo.getString("ptime");
-            saveWeatherInfo(context,cityName,weatherCode,temp1,temp2,weatherDesp,publishTime);
+            String cityCode = weatherInfo.getString("citycode");
+            String temp1 = weatherInfo.getString("l_tmp");
+            String temp2 = weatherInfo.getString("h_tmp");
+            String weatherDesp = weatherInfo.getString("weather");
+            String publishTime = weatherInfo.getString("date");
+            String windDirection = weatherInfo.getString("WD");
+            String windSpeed = weatherInfo.getString("WS");
+            saveWeatherInfo(context,cityName,cityCode,temp1,temp2,weatherDesp,publishTime,windDirection,windSpeed);
+
+
+
         }catch (JSONException e){
             e.printStackTrace();
         }
@@ -108,17 +114,19 @@ public class Utility {
     /**
      * Save all weather data from server to SharedPreferences folder
      */
-    public static void saveWeatherInfo(Context context,String cityName,String weatherCode,String temp1,String temp2,String weatherDesp,String publishTime){
+    public static void saveWeatherInfo(Context context,String cityName,String cityCode,String temp1,String temp2,String weatherDesp,String publishTime,String windDirection,String windSpeed){
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-M-d", Locale.CHINA);
         SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(context).edit();
         editor.putBoolean("city_selected",true);
         editor.putString("city_name",cityName);
-        editor.putString("weather_code",weatherCode);
+        editor.putString("city_code",cityCode);
         editor.putString("temp1",temp1);
         editor.putString("temp2",temp2);
         editor.putString("weather_desp",weatherDesp);
         editor.putString("publish_time",publishTime);
         editor.putString("current_date",sdf.format(new Date()));
+        editor.putString("wind_direction",windDirection);
+        editor.putString("wind_speed",windSpeed);
         editor.commit();
     }
 

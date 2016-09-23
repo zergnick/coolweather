@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.text.TextUtils;
@@ -18,6 +19,10 @@ import com.coolweather.app.service.AutoUpdateService;
 import com.coolweather.app.util.HttpCallbackListener;
 import com.coolweather.app.util.HttpUtil;
 import com.coolweather.app.util.Utility;
+import com.google.android.gms.appindexing.Action;
+import com.google.android.gms.appindexing.AppIndex;
+import com.google.android.gms.appindexing.Thing;
+import com.google.android.gms.common.api.GoogleApiClient;
 
 
 /**
@@ -31,18 +36,25 @@ public class WeatherActivity extends Activity implements View.OnClickListener {
     private TextView temp1Text;
     private TextView temp2Text;
     private TextView currentDateText;
+    private TextView windDirection;
+    private TextView windSpeed;
 
     /**
-     *  Switch city button
+     * Switch city button
      */
     private Button switchCity;
     /**
-     *  Refresh weather info button
+     * Refresh weather info button
      */
     private Button refreshWeather;
+    /**
+     * ATTENTION: This was auto-generated to implement the App Indexing API.
+     * See https://g.co/AppIndexing/AndroidStudio for more information.
+     */
+    private GoogleApiClient client;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState){
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.weather_layout);
@@ -56,26 +68,31 @@ public class WeatherActivity extends Activity implements View.OnClickListener {
         currentDateText = (TextView) findViewById(R.id.current_data);
         switchCity = (Button) findViewById(R.id.switch_city);
         refreshWeather = (Button) findViewById(R.id.refresh_weather);
+        windDirection = (TextView) findViewById(R.id.WD);
+        windSpeed = (TextView) findViewById(R.id.WS);
         switchCity.setOnClickListener(this);
         refreshWeather.setOnClickListener(this);
         String countyCode = getIntent().getStringExtra("county_code");
-        if (!TextUtils.isEmpty(countyCode)){
+        if (!TextUtils.isEmpty(countyCode)) {
             // go for weather data with county code
             publishText.setText("Loading");
             weatherInfoLayout.setVisibility(View.INVISIBLE);
             cityNameText.setVisibility(View.INVISIBLE);
             queryWeatherCode(countyCode);
-        }else {
+        } else {
             // show local weather info without county code
             showWeather();
         }
 
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
     /**
      * Check weather data according to county code
      */
-    private void queryWeatherCode(String countyCode){
+    private void queryWeatherCode(String countyCode) {
         String address = "http://www.weather.com.cn/data/list3/city"+countyCode+".xml";
         queryFromServer(address, "countyCode");
     }
@@ -83,21 +100,21 @@ public class WeatherActivity extends Activity implements View.OnClickListener {
     /**
      * Check weather data according to weather code
      */
-    private void queryWeatherInfo(String weatherCode){
-        String address = "http://www.weather.com.cn/data/cityinfo/"+weatherCode+".html";
+    private void queryWeatherInfo(String weatherCode) {
+        String address = "http://apis.baidu.com/apistore/weatherservice/cityid?cityid="+weatherCode;
         queryFromServer(address, "weatherCode");
     }
 
     /**
      * Find data from server according to address and code
      */
-    private void queryFromServer(final String address, final String type){
+    private void queryFromServer(final String address, final String type) {
         HttpUtil.sendHttpRequest(address, new HttpCallbackListener() {
             @Override
             public void onFinish(String response) {
-                if("countyCode".equals(type)){
-                    if(!TextUtils.isEmpty(response)){
-                        //get weather code from server;
+                if ("countyCode".equals(type)) {
+                    if (!TextUtils.isEmpty(response)) {
+                        //get weather code (citycode) from server
                         String[] array = response.split("\\|");
                         if(array != null && array.length == 2){
                             String weatherCode = array[1];
@@ -106,7 +123,7 @@ public class WeatherActivity extends Activity implements View.OnClickListener {
                     }
                 }else if("weatherCode".equals(type)){
                     //handle weather info from server
-                    Utility.handleWeatherResponse(WeatherActivity.this,response);
+                    Utility.handleWeatherResponse(WeatherActivity.this, response);
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -131,14 +148,16 @@ public class WeatherActivity extends Activity implements View.OnClickListener {
     /**
      * read weather info from SharedPreferences and show which on screen
      */
-    private void showWeather(){
+    private void showWeather() {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        cityNameText.setText(prefs.getString("city_name",""));
-        temp1Text.setText(prefs.getString("temp1",""));
-        temp2Text.setText(prefs.getString("temp2",""));
-        weatherDespText.setText(prefs.getString("weather_desp",""));
-        publishText.setText("Today"+prefs.getString("publish_time","")+"publish");
-        currentDateText.setText(prefs.getString("current_date",""));
+        cityNameText.setText(prefs.getString("city_name", ""));
+        temp1Text.setText(prefs.getString("temp1", ""));
+        temp2Text.setText(prefs.getString("temp2", ""));
+        weatherDespText.setText(prefs.getString("weather_desp", ""));
+        publishText.setText("Today" + prefs.getString("publish_time", "") + "publish");
+        currentDateText.setText(prefs.getString("current_date", ""));
+        windDirection.setText(prefs.getString("wind_direction",""));
+        windSpeed.setText(prefs.getString("wind_speed",""));
         weatherInfoLayout.setVisibility(View.VISIBLE);
         cityNameText.setVisibility(View.VISIBLE);
         Intent intent = new Intent(this, AutoUpdateService.class);
@@ -147,19 +166,19 @@ public class WeatherActivity extends Activity implements View.OnClickListener {
     }
 
     @Override
-    public void onClick(View v){
-        switch(v.getId()){
+    public void onClick(View v) {
+        switch (v.getId()) {
             case R.id.switch_city:
-                Intent intent = new Intent(this,ChooseAreaActivity.class);
-                intent.putExtra("from_weather_activity",true);
+                Intent intent = new Intent(this, ChooseAreaActivity.class);
+                intent.putExtra("from_weather_activity", true);
                 startActivity(intent);
                 finish();
                 break;
             case R.id.refresh_weather:
                 publishText.setText("Loading");
                 SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-                String weatherCode = prefs.getString("weather_code","");
-                if(!TextUtils.isEmpty(weatherCode)){
+                String weatherCode = prefs.getString("city_code", "");
+                if (!TextUtils.isEmpty(weatherCode)) {
                     queryWeatherInfo(weatherCode);
                 }
                 break;
@@ -169,5 +188,39 @@ public class WeatherActivity extends Activity implements View.OnClickListener {
     }
 
 
+    /**
+     * ATTENTION: This was auto-generated to implement the App Indexing API.
+     * See https://g.co/AppIndexing/AndroidStudio for more information.
+     */
+    public Action getIndexApiAction() {
+        Thing object = new Thing.Builder()
+                .setName("Weather Page") // TODO: Define a title for the content shown.
+                // TODO: Make sure this auto-generated URL is correct.
+                .setUrl(Uri.parse("http://[ENTER-YOUR-URL-HERE]"))
+                .build();
+        return new Action.Builder(Action.TYPE_VIEW)
+                .setObject(object)
+                .setActionStatus(Action.STATUS_TYPE_COMPLETED)
+                .build();
+    }
 
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        client.connect();
+        AppIndex.AppIndexApi.start(client, getIndexApiAction());
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        AppIndex.AppIndexApi.end(client, getIndexApiAction());
+        client.disconnect();
+    }
 }
